@@ -35,7 +35,7 @@ async def scrape_synergybb(
     seen_ids = set()
     
     async with async_playwright() as p:
-        browser = await p.firefox.launch(headless=False)
+        browser = await p.firefox.launch(headless=True)
         page = await browser.new_page()
         
         logger.info(f"Starting Synergy BB scrape for {state}...")

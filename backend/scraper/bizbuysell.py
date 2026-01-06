@@ -3,7 +3,7 @@ BizBuySell scraper with robust error handling and browser fallback.
 
 KEY LEARNINGS FROM DEVELOPMENT:
 1. Firefox bypasses detection better than Chromium
-2. Must use headless=False - headless browsers are blocked
+2. Use headless=True for CI/production (required for GitHub Actions)
 3. Pagination requires query param: ?q=bHQ9MzAsNDAsODA%3D
 4. Homepage warm-up helps establish natural session
 5. Rate limiting occurs after ~50 rapid requests
@@ -102,11 +102,11 @@ async def launch_browser(playwright, preferred: str = "firefox") -> tuple[Browse
             viewport = get_random_viewport()
             
             if browser_name == "firefox":
-                browser = await playwright.firefox.launch(headless=False)
+                browser = await playwright.firefox.launch(headless=True)
                 context = await browser.new_context(viewport=viewport, locale='en-US')
             else:
                 browser = await playwright.chromium.launch(
-                    headless=False,
+                    headless=True,
                     args=['--disable-blink-features=AutomationControlled']
                 )
                 context = await browser.new_context(

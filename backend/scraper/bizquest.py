@@ -325,7 +325,7 @@ async def scrape_bizquest(
     logger.info(f"Starting BizQuest scrape for {state_name}...")
     
     async with async_playwright() as p:
-        browser = await p.firefox.launch(headless=False)
+        browser = await p.firefox.launch(headless=True)
         context = await browser.new_context(
             viewport=get_random_viewport(),
             locale='en-US',
@@ -414,7 +414,7 @@ async def test_bizquest_extraction():
     Quick test to verify JSON extraction works.
     """
     async with async_playwright() as p:
-        browser = await p.firefox.launch(headless=False)
+        browser = await p.firefox.launch(headless=True)
         page = await browser.new_page()
         
         try:

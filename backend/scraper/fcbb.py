@@ -134,27 +134,28 @@ def parse_listing_card(card_element, soup_context) -> dict:
 
 
 async def scrape_fcbb(
-    states: list[str] = ["MI", "CT"],
+    state: str = "MI",
     max_pages: int = 20,
     save_backup: bool = True,
 ) -> list[dict]:
     """
-    Scrape FCBB listings for given states.
+    Scrape FCBB listings for a given state.
     
     Args:
-        states: List of state codes (e.g., ["MI", "CT"])
-        max_pages: Maximum pages to scrape per state
+        state: State code (e.g., "MI", "CT")
+        max_pages: Maximum pages to scrape
         save_backup: Save results to JSON file
     
     Returns:
         List of listing dictionaries
     """
-    logger.info(f"Starting FCBB scrape for {states}")
+    logger.info(f"Starting FCBB scrape for {state}")
     
     all_listings = []
+    states = [state]  # Wrap in list for compatibility with existing loop
     
     async with async_playwright() as p:
-        browser = await p.firefox.launch(headless=False)
+        browser = await p.firefox.launch(headless=True)
         context = await browser.new_context(
             viewport={'width': 1920, 'height': 1080},
             locale='en-US',
