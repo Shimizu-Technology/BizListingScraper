@@ -64,10 +64,10 @@ def get_connection(retries: int = 3):
     
     for attempt in range(retries):
         try:
-    p = get_pool()
+            p = get_pool()
             conn = p.getconn()
             try:
-        yield conn
+                yield conn
             finally:
                 # Always try to return connection to pool
                 try:
@@ -94,7 +94,7 @@ def close_pool():
     global pool
     if pool is not None:
         try:
-        pool.close()
+            pool.close()
         except Exception:
             pass
         pool = None
