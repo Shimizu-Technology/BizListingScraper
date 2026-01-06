@@ -28,8 +28,7 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",  # Vite dev
         "http://localhost:3000",  # React dev
-        # Add your production frontend URL here
-        # "https://your-frontend.vercel.app",
+        "https://biz-scraper.netlify.app",  # Production frontend
     ],
     allow_credentials=True,
     allow_methods=["*"],
