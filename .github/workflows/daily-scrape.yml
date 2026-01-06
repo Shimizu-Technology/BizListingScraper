@@ -11,6 +11,7 @@ on:
 jobs:
   scrape:
     runs-on: ubuntu-latest
+    timeout-minutes: 60  # 1 hour max
     
     steps:
       - name: Checkout code
@@ -21,14 +22,6 @@ jobs:
         with:
           python-version: '3.12'
       
-      - name: Cache pip dependencies
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('backend/requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-      
       - name: Install dependencies
         run: |
           cd backend
@@ -37,14 +30,12 @@ jobs:
       
       - name: Install Playwright browsers
         run: |
-          playwright install chromium
+          playwright install firefox chromium
+          playwright install-deps
       
-      - name: Run scraper
+      - name: Run full scrape
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          TARGET_STATE: ${{ vars.TARGET_STATE || 'MI' }}
-          MAX_PAGES_PER_SCRAPE: ${{ vars.MAX_PAGES_PER_SCRAPE || '100' }}
-          STALE_THRESHOLD_DAYS: ${{ vars.STALE_THRESHOLD_DAYS || '3' }}
         run: |
           cd backend
           python -m scraper.main
@@ -53,4 +44,3 @@ jobs:
         if: failure()
         run: |
           echo "::error::Daily scrape failed! Check the logs above."
-          # TODO: Add email/Slack notification here if needed
