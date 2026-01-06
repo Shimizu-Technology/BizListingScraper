@@ -69,7 +69,7 @@ async def main():
             
             source_listings = []
             
-            for state in STATES:
+            for i, state in enumerate(STATES):
                 logger.info(f"  Scraping {source_name} for {state}...")
                 reset_pool()
                 try:
@@ -78,6 +78,12 @@ async def main():
                     logger.info(f"  Found {len(listings)} listings for {state}")
                 except Exception as e:
                     logger.error(f"  Error scraping {source_name} {state}: {e}")
+                
+                # Add cooldown between states to avoid rate limiting (except for last state)
+                if i < len(STATES) - 1:
+                    cooldown = 30  # 30 seconds between states
+                    logger.info(f"  Cooling down for {cooldown}s before next state...")
+                    await asyncio.sleep(cooldown)
             
             if source_listings:
                 logger.info(f"Upserting {len(source_listings)} listings from {source_name}...")

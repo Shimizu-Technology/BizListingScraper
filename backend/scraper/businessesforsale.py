@@ -175,23 +175,27 @@ async def scrape_businessesforsale(
         consecutive_empty = 0
         
         while page_num <= max_pages:
-            # Construct URL (page 1 has no suffix)
+            # Construct URL - BusinessesForSale uses ?page=N for pagination
             if page_num == 1:
                 url = base_url
             else:
-                url = f"{base_url}-{page_num}"
+                url = f"{base_url}?page={page_num}"
             
             logger.info(f"Processing page {page_num}: {url}")
             
             try:
-                await page.goto(url, timeout=60000)
-                await asyncio.sleep(3)
+                await page.goto(url, timeout=60000, wait_until='domcontentloaded')
+                await asyncio.sleep(4)  # Longer wait
                 
-                # Check for Cloudflare
+                # Check for Cloudflare - wait longer if detected
                 text = await page.evaluate("() => document.body.innerText")
                 if "Just a moment" in text or "Checking your browser" in text:
                     logger.info("Waiting for Cloudflare verification...")
-                    await asyncio.sleep(10)
+                    await asyncio.sleep(15)  # Longer wait for Cloudflare
+                    text = await page.evaluate("() => document.body.innerText")
+                    if "Just a moment" in text:
+                        logger.warning("Still on Cloudflare page, waiting more...")
+                        await asyncio.sleep(15)
                 
                 # Get HTML
                 html = await page.content()
@@ -223,8 +227,8 @@ async def scrape_businessesforsale(
                 else:
                     consecutive_empty = 0
                 
-                # Add delay between pages
-                await asyncio.sleep(2)
+                # Add longer delay between pages to avoid rate limiting
+                await asyncio.sleep(5)
                 page_num += 1
                 
             except Exception as e:
