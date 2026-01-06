@@ -1,0 +1,22 @@
+# This file is maintained for compatibility.
+# This project uses uv for dependency management.
+# 
+# To install dependencies:
+#   uv sync
+#
+# To run commands:
+#   uv run python -m scraper.main
+#   uv run uvicorn app.main:app --reload
+#
+# Dependencies are defined in pyproject.toml
+
+playwright>=1.40.0
+beautifulsoup4>=4.12.0
+lxml>=5.0.0
+psycopg[binary]>=3.1.0
+psycopg-pool>=3.2.0
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+pydantic>=2.5.0
+python-dotenv>=1.0.0
+httpx>=0.26.0

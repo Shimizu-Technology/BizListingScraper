@@ -1,0 +1,56 @@
+name: Daily Scrape
+
+on:
+  schedule:
+    # Run at 6 AM UTC every day (1 AM EST / 2 AM EDT)
+    - cron: '0 6 * * *'
+  
+  # Allow manual trigger from GitHub Actions UI
+  workflow_dispatch:
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('backend/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+      
+      - name: Install dependencies
+        run: |
+          cd backend
+          pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      - name: Install Playwright browsers
+        run: |
+          playwright install chromium
+      
+      - name: Run scraper
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          TARGET_STATE: ${{ vars.TARGET_STATE || 'MI' }}
+          MAX_PAGES_PER_SCRAPE: ${{ vars.MAX_PAGES_PER_SCRAPE || '100' }}
+          STALE_THRESHOLD_DAYS: ${{ vars.STALE_THRESHOLD_DAYS || '3' }}
+        run: |
+          cd backend
+          python -m scraper.main
+      
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "::error::Daily scrape failed! Check the logs above."
+          # TODO: Add email/Slack notification here if needed
