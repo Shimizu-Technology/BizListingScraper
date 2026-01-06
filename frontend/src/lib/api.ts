@@ -1,7 +1,9 @@
 import type { ListingsResponse, Stats } from '../types';
 
-// In production, use the environment variable. In development, use Vite's proxy.
-const API_BASE = import.meta.env.VITE_API_URL || '/api';
+// In production, use the environment variable + /api. In development, use Vite's proxy.
+const API_BASE = import.meta.env.VITE_API_URL 
+  ? `${import.meta.env.VITE_API_URL}/api`
+  : '/api';
 
 export async function fetchStats(): Promise<Stats> {
   const res = await fetch(`${API_BASE}/stats`);
