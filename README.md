@@ -98,12 +98,45 @@ Key settings:
 - `TARGET_STATE` - State to scrape (e.g., "MI")
 - `MAX_PAGES_PER_SCRAPE` - Maximum pages per run
 
+## Automated Daily Scraping
+
+The scraper runs automatically via GitHub Actions **twice daily**:
+
+| Time (UTC) | Time (EST) | State | Why Split? |
+|------------|------------|-------|------------|
+| 6:00 AM | 1:00 AM | MI | BizBuySell rate-limits after ~30 pages |
+| 6:00 PM | 1:00 PM | CT | 12-hour gap lets rate limiter reset |
+
+### Manual Trigger
+
+1. Go to **Actions → Daily Scrape → Run workflow**
+2. Choose state: `MI`, `CT`, or `ALL`
+3. Click **Run workflow**
+
+### Environment Variable
+
+The `SCRAPE_STATE` env var controls which state to scrape:
+- `MI` - Michigan only
+- `CT` - Connecticut only  
+- `ALL` - Both states (may hit rate limits)
+
+## Known Limitations
+
+| Site | Issue | Impact |
+|------|-------|--------|
+| **BizBuySell** | 403 rate limit after ~30 pages | Can only scrape one full state per run |
+| **BusinessesForSale** | Cloudflare blocks pagination | Only ~25 listings per state (page 1) |
+| **DealStream** | CAPTCHA slider | Not automated |
+| **BusinessBroker.net** | Aggressive CAPTCHA | Not automated |
+
 ## Deployment
 
-### Database: [Neon](https://neon.tech) (Free tier)
-### Backend: [Render](https://render.com) (Free tier)
-### Frontend: [Vercel](https://vercel.com) (Free tier)
-### Automation: GitHub Actions (Free for public repos)
+| Service | Platform | Tier |
+|---------|----------|------|
+| Database | [Neon](https://neon.tech) | Free |
+| Backend | [Render](https://render.com) | Starter ($7/mo) |
+| Frontend | [Netlify](https://netlify.com) | Free |
+| Automation | GitHub Actions | Free |
 
 See `PROJECT_DOCUMENTATION.md` for detailed deployment guide.
 

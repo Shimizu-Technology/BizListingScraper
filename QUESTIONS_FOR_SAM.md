@@ -141,4 +141,35 @@ Cash Flow availability: **42%** overall (~3,000 of 7,143 listings).
 
 ---
 
+## Technical Notes (For Reference)
+
+### Known Scraping Limitations
+
+| Site | Limitation | How We Handle It |
+|------|------------|------------------|
+| **BizBuySell** | Rate-limits after ~30 pages (one state) | Split MI and CT into separate runs, 12 hours apart |
+| **BusinessesForSale** | Cloudflare blocks pagination after page 1 | Accept ~25 listings per state per run (page 1 only) |
+| **DealStream** | CAPTCHA slider verification | Not automated - would need manual solving |
+| **BusinessBroker.net** | Aggressive CAPTCHA (5x in a row) | Not automated - blocks even with VPN |
+
+### Daily Scrape Schedule
+
+The automated scrape runs **twice daily** to avoid rate limiting:
+
+| Time (UTC) | Time (EST) | What Runs |
+|------------|------------|-----------|
+| 6:00 AM | 1:00 AM | Michigan (MI) only |
+| 6:00 PM | 1:00 PM | Connecticut (CT) only |
+
+This 12-hour gap allows BizBuySell's rate limiter to reset between states.
+
+### Manual Scrape Options
+
+From GitHub Actions UI (Actions → Daily Scrape → Run workflow):
+- **MI** - Scrape Michigan only
+- **CT** - Scrape Connecticut only
+- **ALL** - Scrape both states (may hit rate limits on BizBuySell)
+
+---
+
 *Shimizu Technology*
