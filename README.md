@@ -100,25 +100,24 @@ Key settings:
 
 ## Automated Daily Scraping
 
-The scraper runs automatically via GitHub Actions **twice daily**:
+The scraper runs automatically via GitHub Actions **daily at 6 AM UTC (1 AM EST)**.
 
-| Time (UTC) | Time (EST) | State | Why Split? |
-|------------|------------|-------|------------|
-| 6:00 AM | 1:00 AM | MI | BizBuySell rate-limits after ~30 pages |
-| 6:00 PM | 1:00 PM | CT | 12-hour gap lets rate limiter reset |
+**MI and CT run in parallel** on separate GitHub runners:
+- Each runner has a **different IP address**
+- This avoids rate limiting issues (sites see two different IPs)
+- Both complete in ~15-20 minutes
 
 ### Manual Trigger
 
 1. Go to **Actions → Daily Scrape → Run workflow**
-2. Choose state: `MI`, `CT`, or `ALL`
+2. Choose: `both`, `MI`, or `CT`
 3. Click **Run workflow**
 
 ### Environment Variable
 
 The `SCRAPE_STATE` env var controls which state to scrape:
 - `MI` - Michigan only
-- `CT` - Connecticut only  
-- `ALL` - Both states (may hit rate limits)
+- `CT` - Connecticut only
 
 ## Known Limitations
 

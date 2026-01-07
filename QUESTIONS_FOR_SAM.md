@@ -154,21 +154,19 @@ Cash Flow availability: **42%** overall (~3,000 of 7,143 listings).
 
 ### Daily Scrape Schedule
 
-The automated scrape runs **twice daily** to avoid rate limiting:
+The automated scrape runs **daily at 6 AM UTC (1 AM EST)**.
 
-| Time (UTC) | Time (EST) | What Runs |
-|------------|------------|-----------|
-| 6:00 AM | 1:00 AM | Michigan (MI) only |
-| 6:00 PM | 1:00 PM | Connecticut (CT) only |
-
-This 12-hour gap allows BizBuySell's rate limiter to reset between states.
+**MI and CT run in parallel** on separate GitHub runners:
+- Each runner has a **different IP address**
+- This avoids rate limiting (sites see two different IPs, not one hitting them twice)
+- Both complete in ~15-20 minutes total
 
 ### Manual Scrape Options
 
 From GitHub Actions UI (Actions → Daily Scrape → Run workflow):
+- **both** - Scrape MI and CT in parallel (default)
 - **MI** - Scrape Michigan only
 - **CT** - Scrape Connecticut only
-- **ALL** - Scrape both states (may hit rate limits on BizBuySell)
 
 ---
 
