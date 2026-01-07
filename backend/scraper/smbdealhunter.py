@@ -305,9 +305,24 @@ async def scrape_smbdealhunter(
                 if text.count('Asking Price') > 1:
                     continue
                 
+                # Extract location from the text
+                parts = text.split('|')
+                location_value = None
+                for i, p in enumerate(parts):
+                    if p.strip() == 'Location' and i+1 < len(parts):
+                        location_value = parts[i+1].strip()
+                        break
+                
                 # Check if this listing is for our target state
-                if state_name not in text:
-                    continue
+                # Match full state name, abbreviation, or state in location value
+                if location_value:
+                    location_lower = location_value.lower()
+                    if state == 'MI' and 'michigan' not in location_lower:
+                        continue
+                    elif state == 'CT' and 'connecticut' not in location_lower:
+                        continue
+                else:
+                    continue  # Skip if no location
                 
                 listing = parse_single_listing(container, text, state)
                 if listing and listing.get('external_id'):

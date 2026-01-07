@@ -46,7 +46,7 @@ SCRAPERS = [
     ('businessesforsale', scrape_businessesforsale, {'max_pages': 5}),  # Cloudflare blocks after page 1
     ('transworld', scrape_transworld, {'max_pages': 20}),
     ('synergybb', scrape_synergybb, {}),
-    ('smbdealhunter', scrape_smbdealhunter, {'max_clicks': 50}),
+    ('smbdealhunter', scrape_smbdealhunter, {'max_clicks': 80}),  # Need ~70 clicks to load all ~400 listings
     ('fcbb', scrape_fcbb, {}),
 ]
 
