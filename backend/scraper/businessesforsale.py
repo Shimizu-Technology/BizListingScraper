@@ -189,6 +189,15 @@ async def scrape_businessesforsale(
             logger.info(f"Processing page {page_num}...")
             
             try:
+                # Check for Cloudflare challenge
+                page_text = await page.evaluate("() => document.body.innerText")
+                if "Just a moment" in page_text or "Checking your browser" in page_text:
+                    logger.warning(f"  Cloudflare challenge detected on page {page_num} - waiting...")
+                    await asyncio.sleep(10)
+                    page_text = await page.evaluate("() => document.body.innerText")
+                    if "Just a moment" in page_text:
+                        logger.warning("  Cloudflare still blocking - stopping scrape")
+                        break
                 
                 # Get HTML
                 html = await page.content()
@@ -220,18 +229,29 @@ async def scrape_businessesforsale(
                 else:
                     consecutive_empty = 0
                 
-                # Try to find and click "Next" button for pagination
+                # Get the Next page URL from the link (avoid clicking to reduce Cloudflare triggers)
+                # BusinessesForSale uses: <li class="next-link"><a href="...">NEXT</a></li>
                 try:
-                    next_button = await page.query_selector('a.next, a[rel="next"], .pagination a:has-text("Next"), a:has-text("Next")')
+                    next_button = await page.query_selector('li.next-link a')
                     if next_button:
-                        is_visible = await next_button.is_visible()
-                        if is_visible:
-                            await asyncio.sleep(2)
-                            await next_button.click()
-                            await asyncio.sleep(4)  # Wait for page to load
+                        next_url = await next_button.get_attribute('href')
+                        if next_url:
+                            if not next_url.startswith('http'):
+                                next_url = f"https://us.businessesforsale.com{next_url}"
+                            logger.info(f"  Navigating to: {next_url}")
+                            await asyncio.sleep(3)  # Wait before next request
+                            await page.goto(next_url, timeout=60000, wait_until='domcontentloaded')
+                            await asyncio.sleep(5)  # Longer wait for Cloudflare
+                            
+                            # Check for Cloudflare challenge
+                            text = await page.evaluate("() => document.body.innerText")
+                            if "Just a moment" in text or "Checking your browser" in text:
+                                logger.info("  Waiting for Cloudflare verification...")
+                                await asyncio.sleep(10)
+                            
                             page_num += 1
                         else:
-                            logger.info("Next button not visible - reached last page")
+                            logger.info("No Next URL found - reached last page")
                             break
                     else:
                         logger.info("No Next button found - reached last page")

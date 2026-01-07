@@ -2,11 +2,18 @@ name: Daily Scrape
 
 on:
   schedule:
-    # Run at 6 AM UTC every day (1 AM EST / 2 AM EDT)
+    # Run MI scrape at 6 AM UTC (1 AM EST)
     - cron: '0 6 * * *'
+    # Run CT scrape at 6 PM UTC (1 PM EST) - 12 hours later
+    - cron: '0 18 * * *'
   
   # Allow manual trigger from GitHub Actions UI
   workflow_dispatch:
+    inputs:
+      state:
+        description: 'State to scrape (MI, CT, or ALL)'
+        required: false
+        default: 'ALL'
 
 jobs:
   scrape:
@@ -33,9 +40,24 @@ jobs:
           playwright install firefox chromium
           playwright install-deps
       
-      - name: Run full scrape
+      - name: Determine which state to scrape
+        id: state
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "STATE=${{ github.event.inputs.state || 'ALL' }}" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event.schedule }}" = "0 6 * * *" ]; then
+            echo "STATE=MI" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event.schedule }}" = "0 18 * * *" ]; then
+            echo "STATE=CT" >> $GITHUB_OUTPUT
+          else
+            echo "STATE=ALL" >> $GITHUB_OUTPUT
+          fi
+          echo "Scraping state: $(cat $GITHUB_OUTPUT | grep STATE | cut -d= -f2)"
+      
+      - name: Run scrape
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SCRAPE_STATE: ${{ steps.state.outputs.STATE }}
         run: |
           cd backend
           python -m scraper.main

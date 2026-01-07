@@ -24,20 +24,26 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# States to scrape
-STATES = ['MI', 'CT']
+# Get which state to scrape from environment variable (set by GitHub Actions)
+# Options: 'MI', 'CT', 'ALL' (default)
+SCRAPE_STATE = os.environ.get('SCRAPE_STATE', 'ALL').upper()
 
-# State order override for specific scrapers (to avoid rate limiting)
-# BizBuySell blocks after ~30 pages, so scrape CT first (smaller) then MI
-SCRAPER_STATE_ORDER = {
-    'bizbuysell': ['CT', 'MI'],  # CT first to avoid blocking
-}
+# States to scrape based on environment variable
+if SCRAPE_STATE == 'MI':
+    STATES = ['MI']
+elif SCRAPE_STATE == 'CT':
+    STATES = ['CT']
+else:
+    STATES = ['MI', 'CT']
+
+# Note: Rate limiting is now handled by running MI and CT 12 hours apart
+# via GitHub Actions schedule (6 AM UTC for MI, 6 PM UTC for CT)
 
 # All scrapers with their configs
 SCRAPERS = [
     ('bizquest', scrape_bizquest, {'max_pages': 50}),
     ('bizbuysell', scrape_bizbuysell, {'max_pages': 30}),
-    ('businessesforsale', scrape_businessesforsale, {'max_pages': 20}),
+    ('businessesforsale', scrape_businessesforsale, {'max_pages': 5}),  # Cloudflare blocks after page 1
     ('transworld', scrape_transworld, {'max_pages': 20}),
     ('synergybb', scrape_synergybb, {}),
     ('smbdealhunter', scrape_smbdealhunter, {'max_clicks': 50}),
@@ -49,8 +55,9 @@ async def main():
     """Run all scrapers for all states."""
     start_time = datetime.now()
     logger.info("=" * 60)
-    logger.info(f"Starting full scrape at {start_time}")
-    logger.info(f"States: {STATES}")
+    logger.info(f"Starting scrape at {start_time}")
+    logger.info(f"SCRAPE_STATE env: {SCRAPE_STATE}")
+    logger.info(f"States to scrape: {STATES}")
     logger.info(f"Scrapers: {[s[0] for s in SCRAPERS]}")
     logger.info("=" * 60)
     
@@ -75,10 +82,7 @@ async def main():
             
             source_listings = []
             
-            # Use custom state order if defined (e.g., CT first for BizBuySell)
-            states_to_scrape = SCRAPER_STATE_ORDER.get(source_name, STATES)
-            
-            for i, state in enumerate(states_to_scrape):
+            for i, state in enumerate(STATES):
                 logger.info(f"  Scraping {source_name} for {state}...")
                 reset_pool()
                 try:
@@ -88,10 +92,9 @@ async def main():
                 except Exception as e:
                     logger.error(f"  Error scraping {source_name} {state}: {e}")
                 
-                # Add cooldown between states to avoid rate limiting (except for last state)
-                if i < len(states_to_scrape) - 1:
-                    # BizBuySell needs longer cooldown due to aggressive rate limiting
-                    cooldown = 60 if source_name == 'bizbuysell' else 30
+                # Add cooldown between states if scraping multiple states
+                if i < len(STATES) - 1:
+                    cooldown = 30
                     logger.info(f"  Cooling down for {cooldown}s before next state...")
                     await asyncio.sleep(cooldown)
             
