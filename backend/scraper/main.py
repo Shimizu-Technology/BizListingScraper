@@ -27,6 +27,12 @@ logger = logging.getLogger(__name__)
 # States to scrape
 STATES = ['MI', 'CT']
 
+# State order override for specific scrapers (to avoid rate limiting)
+# BizBuySell blocks after ~30 pages, so scrape CT first (smaller) then MI
+SCRAPER_STATE_ORDER = {
+    'bizbuysell': ['CT', 'MI'],  # CT first to avoid blocking
+}
+
 # All scrapers with their configs
 SCRAPERS = [
     ('bizquest', scrape_bizquest, {'max_pages': 50}),
@@ -69,7 +75,10 @@ async def main():
             
             source_listings = []
             
-            for i, state in enumerate(STATES):
+            # Use custom state order if defined (e.g., CT first for BizBuySell)
+            states_to_scrape = SCRAPER_STATE_ORDER.get(source_name, STATES)
+            
+            for i, state in enumerate(states_to_scrape):
                 logger.info(f"  Scraping {source_name} for {state}...")
                 reset_pool()
                 try:
@@ -80,8 +89,9 @@ async def main():
                     logger.error(f"  Error scraping {source_name} {state}: {e}")
                 
                 # Add cooldown between states to avoid rate limiting (except for last state)
-                if i < len(STATES) - 1:
-                    cooldown = 30  # 30 seconds between states
+                if i < len(states_to_scrape) - 1:
+                    # BizBuySell needs longer cooldown due to aggressive rate limiting
+                    cooldown = 60 if source_name == 'bizbuysell' else 30
                     logger.info(f"  Cooling down for {cooldown}s before next state...")
                     await asyncio.sleep(cooldown)
             

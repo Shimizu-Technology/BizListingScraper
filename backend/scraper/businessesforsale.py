@@ -174,28 +174,21 @@ async def scrape_businessesforsale(
         page_num = 1
         consecutive_empty = 0
         
+        # Navigate to first page
+        logger.info(f"Processing page 1: {base_url}")
+        await page.goto(base_url, timeout=60000, wait_until='domcontentloaded')
+        await asyncio.sleep(4)
+        
+        # Check for Cloudflare on initial load
+        text = await page.evaluate("() => document.body.innerText")
+        if "Just a moment" in text or "Checking your browser" in text:
+            logger.info("Waiting for Cloudflare verification...")
+            await asyncio.sleep(15)
+        
         while page_num <= max_pages:
-            # Construct URL - BusinessesForSale uses ?page=N for pagination
-            if page_num == 1:
-                url = base_url
-            else:
-                url = f"{base_url}?page={page_num}"
-            
-            logger.info(f"Processing page {page_num}: {url}")
+            logger.info(f"Processing page {page_num}...")
             
             try:
-                await page.goto(url, timeout=60000, wait_until='domcontentloaded')
-                await asyncio.sleep(4)  # Longer wait
-                
-                # Check for Cloudflare - wait longer if detected
-                text = await page.evaluate("() => document.body.innerText")
-                if "Just a moment" in text or "Checking your browser" in text:
-                    logger.info("Waiting for Cloudflare verification...")
-                    await asyncio.sleep(15)  # Longer wait for Cloudflare
-                    text = await page.evaluate("() => document.body.innerText")
-                    if "Just a moment" in text:
-                        logger.warning("Still on Cloudflare page, waiting more...")
-                        await asyncio.sleep(15)
                 
                 # Get HTML
                 html = await page.content()
@@ -227,9 +220,25 @@ async def scrape_businessesforsale(
                 else:
                     consecutive_empty = 0
                 
-                # Add longer delay between pages to avoid rate limiting
-                await asyncio.sleep(5)
-                page_num += 1
+                # Try to find and click "Next" button for pagination
+                try:
+                    next_button = await page.query_selector('a.next, a[rel="next"], .pagination a:has-text("Next"), a:has-text("Next")')
+                    if next_button:
+                        is_visible = await next_button.is_visible()
+                        if is_visible:
+                            await asyncio.sleep(2)
+                            await next_button.click()
+                            await asyncio.sleep(4)  # Wait for page to load
+                            page_num += 1
+                        else:
+                            logger.info("Next button not visible - reached last page")
+                            break
+                    else:
+                        logger.info("No Next button found - reached last page")
+                        break
+                except Exception as nav_err:
+                    logger.debug(f"Pagination error: {nav_err}")
+                    break
                 
             except Exception as e:
                 logger.error(f"Error on page {page_num}: {e}")
