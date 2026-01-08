@@ -163,10 +163,17 @@ The automated scrape runs **daily at 6 AM UTC (1 AM EST)**.
 
 ### Manual Scrape Options
 
+**Option 1: GitHub Actions (Recommended)**
 From GitHub Actions UI (Actions → Daily Scrape → Run workflow):
 - **both** - Scrape MI and CT in parallel (default)
 - **MI** - Scrape Michigan only
 - **CT** - Scrape Connecticut only
+
+**Option 2: Scrape Button in UI**
+The "Scrape" button in the web app runs all scrapers sequentially (~25-30 min).
+- Good for quick manual refreshes
+- May hit rate limits on BizBuySell (runs both states from same IP)
+- For full reliable scrapes, use GitHub Actions instead
 
 ---
 
