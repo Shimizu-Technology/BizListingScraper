@@ -3,12 +3,28 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException
 from pydantic import BaseModel
 from typing import Optional
 import asyncio
+import time
 
 from ..models import StatsResponse, ScrapeRunResponse
-from ..database import get_connection, init_pool
+from ..database import get_connection, init_pool, reset_pool
 from ..config import TARGET_STATES
 
 router = APIRouter()
+
+
+def get_connection_with_retry(max_retries: int = 3):
+    """Get connection with automatic retry and pool reset on failure."""
+    last_error = None
+    for attempt in range(max_retries):
+        try:
+            return get_connection()
+        except Exception as e:
+            last_error = e
+            print(f"[DB] Connection attempt {attempt + 1} failed: {e}")
+            if attempt < max_retries - 1:
+                reset_pool()
+                time.sleep(0.5 * (attempt + 1))  # Exponential backoff
+    raise last_error
 
 # Track running scrape
 _scrape_task = None
@@ -22,8 +38,8 @@ class ScrapeRequest(BaseModel):
 
 @router.get("", response_model=StatsResponse)
 async def get_stats():
-    """Get dashboard statistics."""
-    with get_connection() as conn:
+    """Get dashboard statistics with retry logic for cold starts."""
+    with get_connection_with_retry() as conn:
         with conn.cursor() as cur:
             # Total active
             cur.execute("SELECT COUNT(*) FROM listings WHERE is_active = TRUE")

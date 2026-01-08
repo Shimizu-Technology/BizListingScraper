@@ -4,15 +4,31 @@ from fastapi.responses import StreamingResponse
 from typing import Optional
 import csv
 import io
+import time
 from datetime import datetime
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 
 from ..models import ListingResponse, ListingsResponse, HistoryEntry, ReviewUpdate
-from ..database import get_connection
+from ..database import get_connection, reset_pool
 
 router = APIRouter()
+
+
+def get_connection_with_retry(max_retries: int = 3):
+    """Get connection with automatic retry and pool reset on failure."""
+    last_error = None
+    for attempt in range(max_retries):
+        try:
+            return get_connection()
+        except Exception as e:
+            last_error = e
+            print(f"[DB] Connection attempt {attempt + 1} failed: {e}")
+            if attempt < max_retries - 1:
+                reset_pool()
+                time.sleep(0.5 * (attempt + 1))  # Exponential backoff
+    raise last_error
 
 @router.get("", response_model=ListingsResponse)
 async def get_listings(
@@ -107,7 +123,7 @@ async def get_listings(
     
     offset = (page - 1) * per_page
     
-    with get_connection() as conn:
+    with get_connection_with_retry() as conn:
         with conn.cursor() as cur:
             # Get total count
             cur.execute(f"SELECT COUNT(*) FROM listings WHERE {where_clause}", params)
@@ -233,7 +249,7 @@ async def export_csv(
     
     where_clause = " AND ".join(conditions)
     
-    with get_connection() as conn:
+    with get_connection_with_retry() as conn:
         with conn.cursor() as cur:
             cur.execute(f"""
                 SELECT 
@@ -346,7 +362,7 @@ async def export_excel(
     
     where_clause = " AND ".join(conditions)
     
-    with get_connection() as conn:
+    with get_connection_with_retry() as conn:
         with conn.cursor() as cur:
             cur.execute(f"""
                 SELECT 
@@ -451,7 +467,7 @@ async def export_excel(
 @router.get("/{listing_id}", response_model=ListingResponse)
 async def get_listing(listing_id: int):
     """Get a single listing by ID."""
-    with get_connection() as conn:
+    with get_connection_with_retry() as conn:
         with conn.cursor() as cur:
             cur.execute("""
                 SELECT id, external_id, source, url, title, asking_price, cash_flow,
@@ -501,7 +517,7 @@ async def get_listing(listing_id: int):
 @router.patch("/{listing_id}/review")
 async def update_review_status(listing_id: int, review: ReviewUpdate):
     """Mark a listing as reviewed or update its notes."""
-    with get_connection() as conn:
+    with get_connection_with_retry() as conn:
         with conn.cursor() as cur:
             # Check if listing exists
             cur.execute("SELECT id FROM listings WHERE id = %s", (listing_id,))
@@ -523,7 +539,7 @@ async def update_review_status(listing_id: int, review: ReviewUpdate):
 @router.get("/{listing_id}/history", response_model=list[HistoryEntry])
 async def get_listing_history(listing_id: int):
     """Get change history for a listing."""
-    with get_connection() as conn:
+    with get_connection_with_retry() as conn:
         with conn.cursor() as cur:
             # First check if listing exists
             cur.execute("SELECT id FROM listings WHERE id = %s", (listing_id,))

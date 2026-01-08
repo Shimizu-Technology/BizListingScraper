@@ -161,7 +161,7 @@ The automated scrape runs **daily at 6 AM UTC (1 AM EST)**.
 - This avoids rate limiting (sites see two different IPs, not one hitting them twice)
 - Both complete in ~15-20 minutes total
 
-### Manual Scrape Options
+### Scrape Options
 
 **Option 1: GitHub Actions (Recommended)**
 From GitHub Actions UI (Actions → Daily Scrape → Run workflow):
