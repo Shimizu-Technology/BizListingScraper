@@ -16,19 +16,30 @@ from ..database import get_connection, reset_pool
 router = APIRouter()
 
 
+from contextlib import contextmanager
+
+@contextmanager
 def get_connection_with_retry(max_retries: int = 3):
     """Get connection with automatic retry and pool reset on failure."""
     last_error = None
+    conn = None
+    
     for attempt in range(max_retries):
         try:
-            return get_connection()
+            # Reset pool before retry (except first attempt)
+            if attempt > 0:
+                reset_pool()
+                time.sleep(0.5 * (attempt + 1))
+            
+            with get_connection() as c:
+                conn = c
+                yield conn
+                return  # Success, exit
         except Exception as e:
             last_error = e
-            print(f"[DB] Connection attempt {attempt + 1} failed: {e}")
-            if attempt < max_retries - 1:
-                reset_pool()
-                time.sleep(0.5 * (attempt + 1))  # Exponential backoff
-    raise last_error
+            print(f"[DB] Connection attempt {attempt + 1}/{max_retries} failed: {e}")
+            if attempt >= max_retries - 1:
+                raise  # Re-raise on final attempt
 
 @router.get("", response_model=ListingsResponse)
 async def get_listings(

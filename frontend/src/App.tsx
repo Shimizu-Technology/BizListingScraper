@@ -102,7 +102,7 @@ function App() {
               <button
                 onClick={handleScrape}
                 disabled={scrapeRunning}
-                title="Quick manual scrape (~25 min). For full daily scrapes, use GitHub Actions instead."
+                title="Note: Scraping runs via GitHub Actions (daily at 6 AM UTC). This button may not work on the hosted version."
                 className="flex items-center gap-2 px-4 py-2 bg-[var(--color-accent)] text-[var(--color-bg)] rounded-lg hover:bg-[var(--color-accent-dim)] transition-colors disabled:opacity-50 font-medium"
               >
                 {scrapeRunning ? (
